@@ -1,10 +1,6 @@
 #include <Wire.h>
 
-//  Test bed adapted from the Blink and PacketSerial examples. 
-
-#define XLED 4
-#define YLED 5
-#define ZLED 6
+//  Central node to read sensors and notify others of results.
 
 #define VIB_LED LED_BUILTIN
 #define VIB_LEVEL 5
@@ -22,7 +18,7 @@ long vibDone = 0;
 
 void setup() {
 
-  // initialize digital LED pin as an output.
+  // initialize digital pins as outputs.
   
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
@@ -38,7 +34,17 @@ void setup() {
   
   Wire.begin();
   Wire.setClock(100000);
+
+  // Initialize accelerometer history
   
+  for (int i = 0; i<3; i++) {
+    accOld[i] = analogRead(accPin[i])-255;
+  }
+
+  // Prepare for debug output
+  
+  Serial.begin(115200);
+
 }
 
 // the loop function runs over and over again forever
@@ -47,21 +53,29 @@ void loop() {
 
   // get the current acceleration values
 
-  long delta = 0;
+  int delta = 0;
   for (int i = 0; i<3; i++) {
+    delay(100);
     accNew[i] = analogRead(accPin[i])-255;
+    Serial.print(accNew[i]);
+    Serial.print(" ");
     delta += accNew[i] - accOld[i];
     accOld[i] = accNew[i];
   }
 
   // If they've changed by more than the trigger magnitude, we're vibrating!
   
-  if (delta > VIB_LEVEL) {
+  if (abs(delta) > VIB_LEVEL) {
     isVib = true;
     vibDone = millis() + 2000;
   } else {
     isVib = !(millis() > vibDone);      
   }
+
+  Serial.print(" ");
+  Serial.print(delta);
+  Serial.print(" ");
+  Serial.println(isVib);
 
   // Let everyone know what we think is happening
 
