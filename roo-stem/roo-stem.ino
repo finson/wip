@@ -1,53 +1,74 @@
 #include <Wire.h>
-//#include <PacketSerial.h>
 
-/*
-  Test bed adapted from the Blink and PacketSerial examples. 
-*/
+//  Test bed adapted from the Blink and PacketSerial examples. 
 
-#define INTERVAL 500
-#define VIB_PIN 13
+#define XLED 4
+#define YLED 5
+#define ZLED 6
 
-//PacketSerial myPacketSerial;
-uint8_t packet[64];
-uint32_t sentTime;
+#define VIB_LED LED_BUILTIN
+#define VIB_LEVEL 5
+
+int i2cAddress[] = {9,10};
+
+int accPin[] = {A0, A1, A2};
+int accOld[] = {0,0,0};
+int accNew[] = {0,0,0};
 
 boolean isVib = false;
+long vibDone = 0;
 
 // The setup function runs once on reset.
 
 void setup() {
-  // initialize LED pin as an output.
+
+  // initialize digital LED pin as an output.
   
   pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, packet[0]);
-  pinMode(VIB_PIN, INPUT);
+  digitalWrite(LED_BUILTIN, LOW);
 
-  Serial.begin(115200);
-  sentTime = millis();
+  // initialize analog pins as inputs
 
+  analogReference(DEFAULT);
+  for (int i=0; i<3; i++) {
+    pinMode(accPin[i],INPUT);
+  }
+
+  // Configure Wire stream for I2C
   
-
+  Wire.begin();
+  Wire.setClock(100000);
+  
 }
 
 // the loop function runs over and over again forever
 
 void loop() {
 
-  isVib = (digitalRead(VIB_PIN) != LOW);
-  if (isVib) {
-    Serial.print(millis());
-    Serial.print(" ");
-    Serial.println("I'm vibrating!");
-  }
-  
+  // get the current acceleration values
 
-//  if (millis()-sentTime > 1000) {
-//    sentTime = millis();
-//    packet[0] = ~packet[0];
-//    digitalWrite(LED_BUILTIN, packet[0]);
-//    myPacketSerial.send(packet, 2);
-//  }
-//  
-//    myPacketSerial.update();
+  long delta = 0;
+  for (int i = 0; i<3; i++) {
+    accNew[i] = analogRead(accPin[i])-255;
+    delta += accNew[i] - accOld[i];
+    accOld[i] = accNew[i];
+  }
+
+  // If they've changed by more than the trigger magnitude, we're vibrating!
+  
+  if (delta > VIB_LEVEL) {
+    isVib = true;
+    vibDone = millis() + 2000;
+  } else {
+    isVib = !(millis() > vibDone);      
+  }
+
+  // Let everyone know what we think is happening
+
+  digitalWrite(VIB_LED, (isVib) ? HIGH : LOW);
+
+  Wire.beginTransmission(i2cAddress[0]);
+  Wire.write((char)((isVib) ? HIGH : LOW));
+  Wire.endTransmission();
 }
+ 
