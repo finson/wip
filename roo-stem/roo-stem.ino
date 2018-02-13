@@ -3,7 +3,8 @@
 //  Central node to read sensors and notify others of results.
 
 #define VIB_LED LED_BUILTIN
-#define VIB_LEVEL 5
+#define VIB_LEVEL 15
+#define VIB_ZERO_OFFSET 438
 
 int i2cAddress[] = {9,10};
 
@@ -38,7 +39,7 @@ void setup() {
   // Initialize accelerometer history
   
   for (int i = 0; i<3; i++) {
-    accOld[i] = analogRead(accPin[i])-255;
+    accOld[i] = analogRead(accPin[i])-VIB_ZERO_OFFSET;
   }
 
   // Prepare for debug output
@@ -56,7 +57,7 @@ void loop() {
   int delta = 0;
   for (int i = 0; i<3; i++) {
     delay(100);
-    accNew[i] = analogRead(accPin[i])-255;
+    accNew[i] = analogRead(accPin[i])-VIB_ZERO_OFFSET;
     Serial.print(accNew[i]);
     Serial.print(" ");
     delta += accNew[i] - accOld[i];

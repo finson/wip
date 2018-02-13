@@ -9,6 +9,8 @@
 #define LED_D 3
 #define LED_E 4
 
+#define I2C_DEVICE 9
+
 void receiveEvent(int bytes) { 
   boolean isVib = (boolean)Wire.read();
   digitalWrite(LED_BUILTIN, (isVib)? HIGH : LOW);
@@ -47,7 +49,7 @@ void setup() {
 
   // Configure Wire stream for I2C
   
-  Wire.begin(9);
+  Wire.begin(I2C_DEVICE);
   Wire.setClock(100000);
   Wire.onReceive(receiveEvent); 
 }
