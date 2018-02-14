@@ -3,7 +3,7 @@
 //  Central node to read sensors and notify others of results.
 
 #define VIB_LED LED_BUILTIN
-#define VIB_LEVEL 15
+#define VIB_LEVEL 5
 #define VIB_ZERO_OFFSET (-377)
 
 int i2cAddress[] = {9,10};
@@ -44,7 +44,7 @@ void setup() {
 
   // Prepare for debug output
   
-  Serial.begin(115200);
+//  Serial.begin(115200);
 
 }
 
@@ -58,8 +58,8 @@ void loop() {
   for (int i = 0; i<3; i++) {
     delay(100);
     accNew[i] = analogRead(accPin[i])+VIB_ZERO_OFFSET;
-    Serial.print(accNew[i]);
-    Serial.print(" ");
+//    Serial.print(accNew[i]);
+//    Serial.print(" ");
     delta += accNew[i] - accOld[i];
     accOld[i] = accNew[i];
   }
@@ -73,17 +73,17 @@ void loop() {
     isVib = !(millis() > vibDone);      
   }
 
-  Serial.print(" ");
-  Serial.print(delta);
-  Serial.print(" ");
-  Serial.println(isVib);
+//  Serial.print(" ");
+//  Serial.print(delta);
+//  Serial.print(" ");
+//  Serial.println(isVib);
 
   // Let everyone know what we think is happening
 
   digitalWrite(VIB_LED, (isVib) ? HIGH : LOW);
-
-  Wire.beginTransmission(i2cAddress[0]);
-  Wire.write((char)((isVib) ? HIGH : LOW));
-  Wire.endTransmission();
+//
+//  Wire.beginTransmission(i2cAddress[0]);
+//  Wire.write((char)((isVib) ? HIGH : LOW));
+//  Wire.endTransmission();
 }
  
