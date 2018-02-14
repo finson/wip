@@ -61,20 +61,16 @@ void setup() {
   Wire.begin();
   Wire.setClock(100000);
 
-  // Initialize accelerometer history
-  
-//  for (int i = 0; i<3; i++) {
-//    accOld[i] = analogRead(accPin[i])+VIB_ZERO_OFFSET;
-//  }
+  // Initialise the sensor
 
-  /* Initialise the sensor */
   if(!accel.begin()) {
     /* There was a problem detecting the accelerometer ... check your connections */
     Serial.println("Ooops, no LSM303 detected ... Check your wiring!");
     while(1);
   }
 
-  /* Display some basic information on this sensor */
+  // Display some basic information on this sensor
+  
   displaySensorDetails();
 }
 
@@ -85,8 +81,6 @@ void loop() {
 
   // get the current acceleration values
 
-  delay(100);
-
   accel.getEvent(&event);
   accNew[0] = event.acceleration.x;
   accNew[1] = event.acceleration.y;
@@ -94,7 +88,6 @@ void loop() {
   
   float delta = 0;
   for (int i = 0; i<3; i++) {
-//    accNew[i] = analogRead(accPin[i])+VIB_ZERO_OFFSET;
     Serial.print(accNew[i]);
     Serial.print(" ");
     delta += accNew[i] - accOld[i];
@@ -111,16 +104,16 @@ void loop() {
   }
 
   Serial.print(" ");
-  Serial.print(delta);
+  Serial.print(isVib);
   Serial.print(" ");
-  Serial.println(isVib);
+  Serial.println(delta);
 
   // Let everyone know what we think is happening
 
   digitalWrite(VIB_LED, (isVib) ? HIGH : LOW);
-//
-//  Wire.beginTransmission(i2cAddress[0]);
-//  Wire.write((char)((isVib) ? HIGH : LOW));
-//  Wire.endTransmission();
+
+  Wire.beginTransmission(i2cAddress[0]);
+  Wire.write((char)((isVib) ? HIGH : LOW));
+  Wire.endTransmission();
 }
  
