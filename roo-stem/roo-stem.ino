@@ -1,35 +1,60 @@
 #include <Wire.h>
+#include <Adafruit_LSM303.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_LSM303_U.h>
+
 
 //  Central node to read sensors and notify others of results.
 
 #define VIB_LED LED_BUILTIN
-#define VIB_LEVEL 5
+#define VIB_LEVEL 0.5
 #define VIB_ZERO_OFFSET (-377)
+
+Adafruit_LSM303_Accel_Unified accel = Adafruit_LSM303_Accel_Unified(1);
 
 int i2cAddress[] = {9,10};
 
-int accPin[] = {A0, A1, A2};
-int accOld[] = {0,0,0};
-int accNew[] = {0,0,0};
+float accOld[] = {0,0,0};
+float accNew[] = {0,0,0};
 
 boolean isVib = false;
-long vibDone = 0;
+long vibDone = millis();
+
+void displaySensorDetails(void) {
+  sensor_t sensor;
+  accel.getSensor(&sensor);
+  Serial.println("------------------------------------");
+  Serial.print  ("Sensor:       "); Serial.println(sensor.name);
+  Serial.print  ("Driver Ver:   "); Serial.println(sensor.version);
+  Serial.print  ("Unique ID:    "); Serial.println(sensor.sensor_id);
+  Serial.print  ("Max Value:    "); Serial.print(sensor.max_value); Serial.println(" m/s^2");
+  Serial.print  ("Min Value:    "); Serial.print(sensor.min_value); Serial.println(" m/s^2");
+  Serial.print  ("Resolution:   "); Serial.print(sensor.resolution); Serial.println(" m/s^2");
+  Serial.println("------------------------------------");
+  Serial.println("");
+  delay(500);
+}
 
 // The setup function runs once on reset.
 
 void setup() {
 
+  // Prepare for console output
+
+  delay(100);
+  Serial.begin(115200);
+
   // initialize digital pins as outputs.
   
   pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, LOW);
+  digitalWrite(LED_BUILTIN, HIGH);
 
   // initialize analog pins as inputs
 
-  analogReference(DEFAULT);
-  for (int i=0; i<3; i++) {
-    pinMode(accPin[i],INPUT);
-  }
+//  analogReference(DEFAULT);
+//  for (int i=0; i<3; i++) {
+//    pinMode(accPin[i],INPUT);
+//  }
 
   // Configure Wire stream for I2C
   
@@ -38,28 +63,40 @@ void setup() {
 
   // Initialize accelerometer history
   
-  for (int i = 0; i<3; i++) {
-    accOld[i] = analogRead(accPin[i])+VIB_ZERO_OFFSET;
+//  for (int i = 0; i<3; i++) {
+//    accOld[i] = analogRead(accPin[i])+VIB_ZERO_OFFSET;
+//  }
+
+  /* Initialise the sensor */
+  if(!accel.begin()) {
+    /* There was a problem detecting the accelerometer ... check your connections */
+    Serial.println("Ooops, no LSM303 detected ... Check your wiring!");
+    while(1);
   }
 
-  // Prepare for debug output
-  
-//  Serial.begin(115200);
-
+  /* Display some basic information on this sensor */
+  displaySensorDetails();
 }
 
 // the loop function runs over and over again forever
 
 void loop() {
+  sensors_event_t event;
 
   // get the current acceleration values
 
-  int delta = 0;
+  delay(100);
+
+  accel.getEvent(&event);
+  accNew[0] = event.acceleration.x;
+  accNew[1] = event.acceleration.y;
+  accNew[2] = event.acceleration.z;
+  
+  float delta = 0;
   for (int i = 0; i<3; i++) {
-    delay(100);
-    accNew[i] = analogRead(accPin[i])+VIB_ZERO_OFFSET;
-//    Serial.print(accNew[i]);
-//    Serial.print(" ");
+//    accNew[i] = analogRead(accPin[i])+VIB_ZERO_OFFSET;
+    Serial.print(accNew[i]);
+    Serial.print(" ");
     delta += accNew[i] - accOld[i];
     accOld[i] = accNew[i];
   }
@@ -73,10 +110,10 @@ void loop() {
     isVib = !(millis() > vibDone);      
   }
 
-//  Serial.print(" ");
-//  Serial.print(delta);
-//  Serial.print(" ");
-//  Serial.println(isVib);
+  Serial.print(" ");
+  Serial.print(delta);
+  Serial.print(" ");
+  Serial.println(isVib);
 
   // Let everyone know what we think is happening
 
