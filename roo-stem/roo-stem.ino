@@ -7,8 +7,8 @@
 //  Central node to read sensors and notify others of results.
 
 #define VIB_LED LED_BUILTIN
+#define BUTTON_LED 11
 #define VIB_LEVEL 0.5
-#define VIB_ZERO_OFFSET (-377)
 
 Adafruit_LSM303_Accel_Unified accel = Adafruit_LSM303_Accel_Unified(1);
 
@@ -48,15 +48,11 @@ void setup() {
   
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, HIGH);
+  
+  pinMode(BUTTON_LED, OUTPUT);
+  digitalWrite(BUTTON_LED, HIGH);
 
-  // initialize analog pins as inputs
-
-//  analogReference(DEFAULT);
-//  for (int i=0; i<3; i++) {
-//    pinMode(accPin[i],INPUT);
-//  }
-
-  // Configure Wire stream for I2C
+  // Configure Wire object for I2C
   
   Wire.begin();
   Wire.setClock(100000);
@@ -111,6 +107,7 @@ void loop() {
   // Let everyone know what we think is happening
 
   digitalWrite(VIB_LED, (isVib) ? HIGH : LOW);
+  digitalWrite(BUTTON_LED, (isVib) ? HIGH : LOW);
 
   Wire.beginTransmission(i2cAddress[0]);
   Wire.write((char)((isVib) ? HIGH : LOW));
