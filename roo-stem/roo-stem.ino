@@ -133,8 +133,10 @@ void loop() {
   digitalWrite(VIB_LED_PIN, (isVib) ? HIGH : LOW);
   digitalWrite(BUTTON_LED_PIN, (isPressed) ? HIGH : LOW);
 
-  Wire.beginTransmission(i2cAddress[0]);
-  Wire.write((char)(isVib));
-  Wire.endTransmission();
-}
+  for (int i = 0; i < 2; i++) {
+    Wire.beginTransmission(i2cAddress[i]);
+    Wire.write((char)(isVib));
+    Wire.endTransmission();
+  }
+  }
  

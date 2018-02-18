@@ -9,7 +9,7 @@
 #define LED_D 3
 #define LED_E 4
 
-#define I2C_DEVICE 9
+#define I2C_DEVICE 10
 
 void receiveEvent(int bytes) { 
   boolean isVib = (boolean)Wire.read();
