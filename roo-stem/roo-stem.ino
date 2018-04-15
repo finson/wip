@@ -3,26 +3,35 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_LSM303_U.h>
 
-
 //  Central node to read sensors and notify others of results.
 
-#define VIB_LED_PIN LED_BUILTIN
-#define BUTTON_LED_PIN 11
-#define BUTTON_SWITCH_PIN 7
-#define VIB_LEVEL 0.5
+#define VIB_LEVEL 0.5     // delta vib threshold
+#define VIB_LED_PIN 11
 
-Adafruit_LSM303_Accel_Unified accel = Adafruit_LSM303_Accel_Unified(1);
+typedef struct {
+  int led;
+  int pushSense;
+  boolean isPressed;
+  boolean isLit;
+  unsigned long pressActionEnd;
+} ArcadeButton;
 
-int i2cAddress[] = {9,10};
+ArcadeButton button[] = { {12,14,false,false,0}, {10,9,false,false,0} };
+int buttonCount = 2;
+ 
+//Adafruit_LSM303_Accel_Unified accel = Adafruit_LSM303_Accel_Unified(1);
+Adafruit_LSM303_Accel_Unified accel = Adafruit_LSM303_Accel_Unified();
+
+int i2cConsumer[] = {9};
+int i2cCount = 1;         // only one I2C consumer right now
 
 float accOld[] = {0,0,0};
 float accNew[] = {0,0,0};
 
 boolean isVib = false;
-long vibActionEnd = millis();
+unsigned long vibActionEnd = millis();
 
-boolean isPressed = false;
-long pressActionEnd = millis();
+int loopCount = 0;
 
 void displaySensorDetails(void) {
   sensor_t sensor;
@@ -45,32 +54,42 @@ void setup() {
 
   // Prepare for console output
 
-  delay(100);
   Serial.begin(115200);
+  Serial.println("Hello AZ.");
 
   // initialize digital pins
   
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, HIGH);
-  
-  pinMode(BUTTON_LED_PIN, OUTPUT);
-  digitalWrite(BUTTON_LED_PIN, HIGH);
+  pinMode(VIB_LED_PIN, OUTPUT);
+  digitalWrite(VIB_LED_PIN, HIGH);
 
-  pinMode(BUTTON_SWITCH_PIN, INPUT_PULLUP);
-  
+  for (int i=0; i<buttonCount; i++) {
+    pinMode(button[i].led, OUTPUT);
+    digitalWrite(button[i].led, HIGH);
 
+    pinMode(button[i].pushSense, INPUT_PULLUP);
+  }
+
+  Serial.println("Pin config done.");
+  
   // Configure Wire object for I2C
   
   Wire.begin();
   Wire.setClock(100000);
+  
+  Serial.println("Wire config done.");
 
   // Initialise the sensor
 
+  Serial.print("accel.begin() = ");
+  Serial.println(accel.begin());
+  
   if(!accel.begin()) {
     /* There was a problem detecting the accelerometer ... check your connections */
     Serial.println("Ooops, no LSM303 detected ... Check your wiring!");
     while(1);
   }
+
+  Serial.println("Sensor config done.");
 
   // Display some basic information on this sensor
   
@@ -80,8 +99,6 @@ void setup() {
 // the loop function runs over and over again forever
 
 void loop() {
-
-  delay(500);
   
   sensors_event_t event;
 
@@ -94,8 +111,6 @@ void loop() {
   
   float delta = 0;
   for (int i = 0; i<3; i++) {
-    Serial.print(accNew[i]);
-    Serial.print(" ");
     delta += accNew[i] - accOld[i];
     accOld[i] = accNew[i];
   }
@@ -109,34 +124,47 @@ void loop() {
     isVib = !(millis() > vibActionEnd);      
   }
 
-  // Is (or was) the button pressed?
+  // Is (or was) a button pressed?
 
-  int buttonState = digitalRead(BUTTON_SWITCH_PIN);
-  if (digitalRead(BUTTON_SWITCH_PIN)==0) {
-      isPressed = true;
-      pressActionEnd = millis() + 3000;
+  for (int i=0; i<buttonCount; i++) {
+    int buttonState = digitalRead(button[i].pushSense);
+    if (buttonState==0) {
+      button[i].isPressed = true;
+      button[i].pressActionEnd = millis() + 3000;
+      button[i].isLit = true;
     } else {
-      isPressed = !(millis() > pressActionEnd);
-    }
-
-  Serial.print(" v:");
-  Serial.print(isVib);
-  Serial.print(" b:");
-  Serial.print(buttonState);
-  Serial.print(" p:");
-  Serial.print(isPressed);
-  Serial.print(" ");
-  Serial.println(delta);
-
+      button[i].isPressed = !(millis() > button[i].pressActionEnd);
+      button[i].isLit = button[i].isPressed;
+     }
+  }
+    
   // Let everyone know what we think is happening
-
+    
   digitalWrite(VIB_LED_PIN, (isVib) ? HIGH : LOW);
-  digitalWrite(BUTTON_LED_PIN, (isPressed) ? HIGH : LOW);
 
-  for (int i = 0; i < 2; i++) {
-    Wire.beginTransmission(i2cAddress[i]);
+  for (int i=0; i<buttonCount; i++) {
+    digitalWrite(button[i].led, (button[i].isLit) ? HIGH : LOW);
+  }
+  
+  for (int i = 0; i < i2cCount; i++) {
+    Wire.beginTransmission(i2cConsumer[i]);
     Wire.write((char)(isVib));
     Wire.endTransmission();
   }
-  }
- 
+//
+//  Serial.print("Sensor loop ("); Serial.print(loopCount++);Serial.print(") ");
+//  for (int i=0;i<3;i++) {
+//    Serial.print(accNew[i]);
+//    Serial.print(" ");
+//  }
+  
+//  for (int i=0;i<buttonCount;i++) {
+//    Serial.print("[ isPressed: ");
+//    Serial.print(button[i].isPressed);
+//    Serial.print(" isLit: ");
+//    Serial.print(button[i].isLit);
+//    Serial.print(" }");
+////    delay(500);
+//  }
+//  Serial.println();
+}
